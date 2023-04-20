@@ -1,0 +1,42 @@
+import yfinance as yf
+from datetime import datetime, timedelta
+
+# Prompt user for ticker symbol
+ticker = input("Enter ticker symbol: ")
+
+# Get the next expiration date
+expiration_dates = yf.Ticker(ticker).options
+next_expiration_date = (datetime.today() + timedelta(days=30)).strftime('%Y-%m-%d')
+while next_expiration_date not in expiration_dates:
+    next_expiration_date = (datetime.strptime(next_expiration_date, '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m-%d')
+
+# Get options data for the next expiration date
+options = yf.Ticker(ticker).option_chain(next_expiration_date).calls
+
+# Get the implied volatility for the option with the latest expiration date
+implied_volatility = options.iloc[-1]["impliedVolatility"]
+
+# Get historical data for the ticker
+historical_data = yf.Ticker(ticker).history(period="1y")
+
+# Calculate IV rank
+iv_rank = (historical_data["Close"].iloc[-1] - historical_data["Close"].min()) / (historical_data["Close"].max() - historical_data["Close"].min())
+
+# Calculate IV percentile
+iv_percentile = (historical_data["Close"].iloc[-1] - historical_data["Close"].min()) / (historical_data["Close"].quantile(0.75) - historical_data["Close"].quantile(0.25))
+
+# Get 52-week high and low
+high_52_weeks = historical_data["Close"].max()
+low_52_weeks = historical_data["Close"].min()
+
+# Get the most recent stock price
+stock_price = yf.Ticker(ticker).info["regularMarketPrice"]
+
+# Print results
+print("Ticker Symbol: ", ticker)
+print("Stock Price: ${:.2f}".format(stock_price))
+print("30-Day Implied Volatility: {:.2%}".format(implied_volatility))
+print("IV Rank: {:.2%}".format(iv_rank))
+print("IV Percentile: {:.2%}".format(iv_percentile))
+print("52-Week High: ${:.2f}".format(high_52_weeks))
+print("52-Week Low: ${:.2f}".format(low_52_weeks))
